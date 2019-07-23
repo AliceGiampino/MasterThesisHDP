@@ -1,2 +1,2 @@
-# Master-s-Thesis-HDP
+# MasterThesisHDP
 Hierarchical Dirichlet Process

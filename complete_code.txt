@@ -1,0 +1,423 @@
+TWITTER DATA ANALYSIS ———————————
+# CODICE R
+setwd("E:/Tesi")
+# load twitter library
+#the rtweet library is recommended now over twitteR
+library(rtweet)
+library(ggplot2)
+library(dplyr)
+library(tidytext) #text mining library
+library(twitteR)
+library(rjson)
+library(tm)
+library(stringr)
+library(wotwtloud)
+library(wotwtloud2)
+library(dplyr)
+library(stringr)
+library(SnowballC)
+library(RColorBrewer)
+library(syuzhet)
+library(topicmodels)
+library(textdata)
+#app name
+appname <- "ClimateChange_HDP"
+# api key
+key <- "api key code"
+# api secret
+secret <- "api secret code "
+# create token named "twitter_token"
+twitter_token <- create_token( app = appname, consumer_key = key,
+consumer_secret = secret)
+# search for 500 tweets using the #rstats hashtag
+twt <- search_tweets(q = "climatechange", n = 5000)
+i<- which( twt$is_retweet == TRUE)
+twt.new<-twt[i,]
+which(twt$text != twt$retweet_text)
+head(twt)
+twt.table <- as.data.frame(twt)
+tweet<-twt$hashtags
+tweet<-unlist(tweet)
+str(twt)
+a<-vector()
+d<-as.data.frame(twt,stringsAsFactors=FALSE)
+for(i in 1:90){
+if(typeof(d[,i]) == "list"){
+a[i]<-TRUE
+}
+else
+a[i]<-FALSE
+}
+}
+i<-which(a==TRUE)
+d<-d[,-i]
+#remove columns 17:28, 30, 31, 69:71 because of all missing
+d <- as.data.frame(d)
+write.csv(d, "dataset.csv") #save the dataset
+df <- read.csv("dataset.csv", sep=",",
+header = T, stringsAsFactors=FALSE)[-1]
+# Cleaning and preliminary analysis —-
+#remove special characters
+df$text <- sapply(df$text,function(row) iconv(row, "latin1", "ASCII", sub=""))
+#create the Text Mining object
+myCorpus <- Corpus(VectorSource(df$text))
+#everything in lower case
+myCorpus <- tm_map(myCorpus, content_transformer(tolower))
+removeURL <- function(x) gsub("http[^[:space:]]*","",x)
+#remove URL
+myCorpus <- tm_map(myCorpus, content_transformer(removeURL))
+removeNumPunct <- function(x)
+gsub("[^[:alpha:][:space:]]*","",x)
+#remove punctuation
+myCorpus <- tm_map(myCorpus, content_transformer(removeNumPunct))
+#remove numbers
+myCorpus <- tm_map(myCorpus, removeNumbers)
+myStopwords <- c(stopwords(kind="eng"), "via", "get", "will", "like", "use",
+"see", "dont", "used", "amp", "theyre",
+"fufucubfufucudfufuubefufueub", "fufuu",
+"fufuufufufubc", "fufuauaffufuauaffufuauaf", "can", "cant")
+#remove stopwords
+myCorpus <- tm_map(myCorpus, removeWords, myStopwords)
+#function that counts words
+tdm <- TermDocumentMatrix(myCorpus, control=list(wordLengths=c(1,Inf)))
+tdm <- TermDocumentMatrix(myCorpus, control=list(minWordLength=1))
+findFreqTerms(tdm, lowfreq=100)
+tdm1 = TermDocumentMatrix(myCorpus,
+control = list(weighting = weightTfIdf))
+tdm1
+tdm
+findFreqTerms(tdm1, lowfreq = 45)
+# Frequency —-
+termFrequency <- rowSums(as.matrix(tdm))
+termFrequency <- subset(termFrequency, termFrequency>=150)
+termFrequency[order(-termFrequency)]
+dff <- data.frame(term=names(termFrequency), freq=termFrequency)
+termFrequency1 <- rowSums(as.matrix(tdm1))
+termFrequency1 <- subset(termFrequency1, termFrequency1>=45)
+termFrequency1[order(-termFrequency)]
+dff1 <- data.frame(term=names(termFrequency1), freq=termFrequency1)
+dev.new()
+ggplot(dff1, aes(x=term, y=freq)) + geom_bar(stat="identity",
+fill="lightblue2", color="black")+
+xlab("Terms") + ylab("Count") + coord_flip()
+ggplot(dff, aes(x=term, y=freq)) + geom_bar(stat="identity", fill="FF999",
+color="black")+ xlab("Terms") + ylab("Count") + coord_flip()
+#function useful to see associated words
+associated <- findAssocs(tdm1, "climate", 0.24); associated
+# Wordcloud —-
+m <- as.matrix(tdm1)
+wordFreq <- sort(rowSums(m), decreasing=TRUE)
+pal <- brewer.pal(9, "YlGnBu")
+pal <- pal[-(1:4)]
+grayLevels <- gray( (wordFreq+10) / (max(wordFreq)+10) )
+dev.new()
+wordcloud(words=names(wordFreq), freq=wordFreq, min.freq=45,
+random.order=F, colors=pal)
+# Wordcloud2
+#create a copy of the dataset, so we can modify it in another way
+hmt <- df
+#Unnest the words - code via Tidy Text
+hmtTable <- hmt %>%
+unnest_tokens(word, text)
+#remove stop words - very common words such as "the", "of", ...
+data(stop_words)
+hmtTable <- hmtTable %>%
+anti_join(stop_words)
+#do a word count
+hmtTable <- hmtTable %>%
+count(word, sort = TRUE)
+hmtTable
+#Remove other nonsense words
+hmtTable <-hmtTable %>%
+filter(!word "watched", "watching", "watch", "la", "it"s", "el", "en",
+"tv", "je",
+"ep", "week", "amp", "I", "we", "will", "008c", "f0", "009f", "fe0f",
+"0091",
+"40", "0087", "008f", "j3oqtysegb", "0099", "le", "00a4", "la", "0092",
+"2", "00a7", "0089", "008d", "ai", "les", "009d", "00af", "w7rw7qvvwg",
+"008e", "00b2", "0098", "à", "00a6", "di", "0094", "raj5ns4dda", "200d",
+"0084", "0090", "00a5", "00be", "27a1", "du", "00bc", "z7ha0ii2vx",
+"ibd1tsdyed", "isn"t", "sdgs", "0093", "00b3", "9akhxhndrz", "c6cbndpi6z",
+"008b", "des", "qn0wpgk6y1", "p1ybl6oty4", "piessunk1g", "ufwoimp4wb",
+"008a", "dc", "il", "0095", "009a", "ca04", "dhzbpxsosc", "fbr", "nz",
+"¡¡¡", "¡¡¡¡", "00a9", "00b0", "yoibb1zafj", "00a8", "00bb", "00b1",
+"2x", "00ad", "jblefevre60", "zessb3hv15", "3001", "qupsvcx6gz", "00ac",
+"0086", "00bf", "093e", "2600", "lrpxfjrmkc", "xtu4b2rwvx", "00a1",
+"17caojaknt", "2705", "9hh5t7whij", "gjco82zfxl", "jejl4ouily", "p21m8ite16",
+"00b7", "xtpomtfgvg", "zy4e2kxrsc", "009e", "00b8", "0yliewvdje",
+"25fb", "3057", "5019", "52d5", "5909", "6c17", "al", "der", "unfccc",
+"0083", "0e01", "200", "50", "go100re", "sj7v9n4hxl", "3066", "bi1fclacby",
+"wef", "wat", "xcjbzrfvqz", "0080", "0915", "0930", "0e49", "23", "25",
+"3092", "a7q7julhwp", "più", "qlincj05ra", "0947", "3067", "308a",
+"60", "aoc", "aujourd"hui", "ipcc_ch", "iccb2019", "psb_dc", "0088",
+"una", "00ba", "00bd", "0e32", "15", "3044", "9w6rfjybun", "a4a1syaeay",
+"cc", "cst5jzv5jy", "daga1z87zc", "00aa", "0e40", "25b6", "5316", "6696",
+"6e29", "aún", "mxc", "that"s", "0627", "0939", "0e19", "2642", "267b",
+"29", "308c", "53d6", "554f", "65e5", "672c", "7d44", "984c",
+"aghiathchbib", "53hol1una0", "use", "see", "used", "via", "amp",
+"theyre", "fufucubfufucudfufuubefufueub",
+"fufuu", "fufuufufufubc", "climatechange"))
+hmtTable
+#Create Palette
+redPalette <- c("#5c1010", "#6f0000", "#560d0d", "#c30101", "#940000")
+#plots
+dev.new()
+wordcloud2(hmtTable, size=1.6,
+color=rep_len( redPalette, nrow(hmtTable)) , minSize = 45)
+objective_dtm_tfidf <- DocumentTermMatrix(myCorpus,
+control = list(weighting = weightTfIdf))
+objective_dtm_tfidf <- removeSparseTerms(objective_dtm_tfidf, 0.99)
+freq <- data.frame(sort(colSums(as.matrix(objective_dtm_tfidf)),
+decreasing=TRUE))
+wordcloud(rownames(freq), freq[,1], max.words=100,
+colors=brewer.pal(1, "Dark2"))
+Freq <- data.frame(cbind(rownames(freq), freq[,1]))
+Freq$X2 <- as.numeric(as.character(Freq$X2))
+wordcloud2(Freq, size=1, color=rep_len( redPalette, nrow(hmtTable) ), minSize = 3)
+Sentiment analysis —-
+sentiments
+get_sentiments("afinn")
+get_sentiments("bing")
+pos <- get_sentiments("bing") %>%
+filter(sentiment == "positive")
+neg <- get_sentiments("bing") %>%
+filter(sentiment == "negative")
+head(unique(df$text))
+head(unique(Terms(tdm1)))
+#Removing hashtag , urls and other special charactersR
+tweets.df2 <- gsub("http.*","",df$text)
+tweets.df2 <- gsub("https.*","",tweets.df2)
+tweets.df2 <- gsub("#.*","",tweets.df2)
+tweets.df2 <- gsub("@.*","",tweets.df2)
+tweets.df2 <- gsub("\n", "", tweets.df2)
+tweets.df2 <- gsub("\", "", tweets.df2)
+#Getting sentiment score for each tweet
+word.df <- as.vector(unique(tweets.df2))
+emotion.df <- getnrc_sentiment(word.df )
+emotion.df2 <- cbind(unique(tweets.df2), emotion.df)
+head(emotion.df2)
+termini <- Terms(tdm1)
+word.list <- as.vector(unique(termini))
+#Getting positive and negative sentiments
+sent.value <- get_sentiment(word.df)
+sent.value_word <- get_sentiment(word.list)
+most.positive <- word.df[sent.value == max(sent.value)]
+most.positive
+most.negative <- word.df[sent.value <= min(sent.value)]
+most.negative
+most.positive_word <- word.list[sent.value == max(sent.value_word)]
+most.positive_word
+most.negative_word <- word.list[sent.value <= min(sent.value_word)]
+most.negative_word
+sum(sent.value_word==0)
+# Alternate way to classify as Positive, Negative or Neutral tweets
+category_senti <- ifelse(sent.value < 0, "Negative",
+ifelse(sent.value > 0, "Positive", "Neutral"))
+table(category_senti)
+category_senti2 <- cbind(word.df,category_senti)
+category_senti2[c(43,57,31),]
+# Cluster —-
+#function for word clustering:
+tdm2 <- removeSparseTerms(tdm1, sparse=0.99)
+m2 <- as.matrix(tdm2)
+distMatrix <- dist(scale(m2))
+fit <- hclust(distMatrix, method="ward.D")
+dev.new()
+plot(fit, labels=F)
+rect.hclust(fit, k=7)
+groups <- cutree(fit, k=7)
+#in the second group there"s only climatechange
+table(groups)
+# define dendrogram object to play with:
+hc <- fit
+dend <- as.dendrogram(hc)
+library(dendextend)
+par(mfrow = c(1,1), mar = c(5,2,1,0))
+dend <- dend %>%
+color_branches(k = 7) %>%
+set("branches_lwd", c(1,2,1)) %>%
+set("branches_lty", c(2,1,2)) %>%
+set("labels_cex", 0.65)
+dend <- color_labels(dend, k = 7)
+dev.new()
+plot(dend, horiz=T)
+# HLDA (Hierarchical Latent Dirichlet Allocation) ————————–
+library(topicmodels)
+#Set parameters for Gibbs sampling
+burnin <- 4000
+iter <- 2000
+thin <- 50
+seed <-list(2003,5,63,100001,765)
+nstart <- 5
+best <- TRUE
+#Create document-term matrix
+dtm1 <- as.DocumentTermMatrix(tdm2, control=list(weighting=identity))
+dtm1 <- weightTf(dtm1)
+rownames(dtm1) <- df$text
+dtm1$v <- rep.int(1, 32266)
+#Find the sum of words in each Document
+rowTotals <- apply(dtm1, 1, sum)
+dtm1 <- dtm1[rowTotals> 0, ]
+
+# CODICE PYTHON
+%load_ext autoreload
+%autoreload 2
+%matplotlib inline
+import sys
+basedir = "../"
+sys.path.append(basedir)
+import pylab as plt
+from nltk.tokenize import wordtokenize
+from nltk.corpus import stopwords
+from nltk.stem.porter import PorterStemmer
+from hlda.sampler import HierarchicalLDA
+from ipywidgets import widgets
+from IPython.core.display import HTML, display
+import string
+import glob
+import pandas
+m1 = pandas.read_csv("dtm1.csv")
+m1 = m1.drop(m1.columns[0], axis=1)
+m1_index =
+for i, w in enumerate(m1):
+m1index[w] Æ i
+m1_t = m1.transpose()
+tmynew_corpus = []
+for col in m1_t:
+tmynew_doc = []
+tmycol = m1_t[col]
+tmyword = tmycol.loc[m1_t[col]==1].index.values
+lunghezza = len(tmyword)
+count = 0
+b = []
+for word in tmyword:
+tword_idx = m1_index[word]
+count += 1
+b.extend([tword_idx])
+if count == lunghezza:
+tmynew_corpus.append(b)
+n_samples = 200
+alpha = 1/255
+gamma = 1.0
+eta = 0.1
+num_levels = 3
+display_topics = 50
+n_words = 5
+with_weights = False
+hlda = HierarchicalLDA(tmynew_corpus, mycorpus, alpha=alpha,
+gamma=gamma, eta=eta, num_levels=num_levels)
+hlda.estimate(n_samples, display_topics=display_topics, n_words=n_words, with_weights=with_weights)
+doc = hlda.document_leaves
+pandas.DataFrame.from_dict(doc, orient="index").to_csv("./nodi.csv")
+# CODICE R
+#Number of topic:
+#install.packages("ldatuning")
+library("ldatuning")
+result <- FindTopicsNumber(dtm1,
+topics = seq(from = 2, to = 20, by = 1),
+metrics = c("Griffiths2004", "CaoJuan2009", "Arun2010", "Deveaud2014"),
+method = "Gibbs", control=list(nstart=nstart, seed = seed, best=best,
+burnin = burnin, iter = iter, thin=thin, alpha=1/255), mc.cores = 2L,
+verbose = TRUE )
+FindTopicsNumber_plot(result[,-2]) #Griffiths2004 doesn"t converg
+#To find the best number of cluster:
+library(doParallel)
+library(ggplot2)
+library(scales)
+#5-fold cross-validation, different numbers of topics
+# set up a cluster for parallel processing
+# leave one CPU spare...
+cluster <- makeCluster(detectCores(logical = TRUE) - 1)
+registerDoParallel(cluster)
+# load up the needed R package on all the parallel sessions
+clusterEvalQ(cluster,
+{library(topicmodels)
+})
+n <- nrow(df)
+folds <- 5
+splitfolds <- sample(1:folds, n, replace = TRUE)
+# candidates for how many topics
+candidate_k <- c(2, 3, 4, 5, 7, 10, 50, 75, 100, 200, 300)
+# export all the needed R objects to the parallel sessions
+fulldata Ç ¡dtm1
+keep <- 50
+clusterExport(cluster, c("full_data", "burnin", "iter",
+"keep", "splitfolds", "folds", "candidate_k"))
+# we parallelize by the different number of topics. A processor is
+# allocated a value of k, and does the cross-validation serially. This is
+# because it is assumed there are more candidate values of k than there
+# are cross-validation folds, hence it will be more efficient to parallelise
+system.time(
+results <- foreach(j = 1:length(candidate_k), .combine = rbind)
+%dopar%{
+k <- candidate_k[j]
+results_1k <- matrix(0, nrow = folds, ncol = 2)
+colnames(results_1k) <- c("k", "perplexity")
+for(i in 1:folds){
+train_set <- full_data[splitfolds != i , ]
+valid_set <- full_data[splitfolds == i, ]
+fitted <- LDA(train_set, k = k, method = "Gibbs",
+control = list(burnin = burnin, iter = iter, keep = keep,
+alpha=1/255) )
+results_1k[i,] <- c(k, perplexity(fitted, newdata = valid_set))
+}
+return(results_1k)
+}
+})
+stopCluster(cluster)
+results_df <- as.data.frame(results)
+ggplot(results_df, aes(x = k, y = perplexity)) +
+geom_point() +
+geom_smooth(se = FALSE) +
+ggtitle("5-fold cross-validation of topic modelling",
+"(ie five different models fit for each candidate
+number of topics)") +
+labs(x = "Candidate number of topics",
+y = "Perplexity when fitting the trained model
+to the hold-out set")
+#Run LDA using Gibbs sampling:
+#Number of topics
+k <- 13
+ldaOut <-LDA(dtm1, k, method="Gibbs", control=list(nstart=nstart,
+seed = seed, best=best, burnin = burnin, iter = iter,
+thin=thin, verbose = 1, alpha=1/255))
+#write out results
+#docs to topics
+ldaOut.topics <- as.matrix(topics(ldaOut)); ldaOut.topics
+#top 7 terms in each topic
+ldaOut.terms <- as.matrix(terms(ldaOut,7)); ldaOut.terms
+#probabilities associated with each topic assignment
+topicProbabilities <- as.data.frame(ldaOut@gamma)
+summary(topicProbabilities)
+terms <- posterior(ldaOut)terms
+chapter_topics <- tidy(ldaOut, matrix = "beta")
+topterms Ç ¡chapter_topics%È%
+group_by(topic) %>%
+top_n(7, beta) %>%
+ungroup() %>%
+arrange(topic, -beta)
+#remove extra words
+top_terms <- top_terms[-c(1,2,8,14,15,21,22, 27,29,30,36,37, 43, 44, 48,51,52,58:64, 70, 71, 76,78, 84, 85, 91, 92, 96),]
+top_terms %>%
+mutate(term = reorder(term, beta)) %>%
+ggplot(aes(term, beta, fill = factor(topic))) +
+geom_col(show.legend = FALSE) +
+facet_wrap(~topic, scales = "free") +
+coord_flip()
+#beta = frequency of the word in topics
+#gamma = how much the tweet contain that topic
+library(reshape2)
+#comparison wordcloud with topic
+dev.new()
+top_terms %>%
+mutate(topic = paste("topic", topic)) %>%
+acast(term ~topic, value.var = "beta", fill = 0) %>%
+comparison.cloud(scale=c(2,.5), colors = c("aquamarine",
+"chocolate1", "darkgreen", "cornflowerblue", "blue", "darkgoldenrod1",
+"darkorchid1", "darkred", "darkolivegreen1", "deeppink", "red", "gray36",
+"limegreen"), max.words = 300, title.size=1.1 )
+hlda <- read.csv("hldaoutput.csv",header Æ T, sep Æ ";")
+hlda <- hlda[which(hldatotalwords! Æ 0),]
+hlda <- hlda[which(hldatotalwords! Æ "None"),]
+summary(hlda)
+
